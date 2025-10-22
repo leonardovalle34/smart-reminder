@@ -19,8 +19,13 @@ interface Props {
   cityName: string;
 }
 
+interface Emits {
+  (e: 'dayClick', date: Date): void;
+  (e: 'reminderClick', date: Date): void;
+}
+
 defineProps<Props>();
-defineEmits(['dayClick']);
+defineEmits<Emits>();
 </script>
 
 <template>
@@ -49,8 +54,10 @@ defineEmits(['dayClick']);
     <!-- Single Dot -->
     <div
       v-if="day.reminderCount > 0"
-      class="w-2 h-2 rounded-full"
+      @click.stop="$emit('reminderClick', day.date)"
+      class="w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform"
       :style="{ backgroundColor: day.dotColor }"
+      :title="`${day.reminderCount} reminder${day.reminderCount !== 1 ? 's' : ''} - Click to view`"
     />
 
     <!-- Tooltip -->

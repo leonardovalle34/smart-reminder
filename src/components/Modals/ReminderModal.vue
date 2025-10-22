@@ -30,7 +30,7 @@ const form = ref({
   date: '',
   time: '09:00',
   city: '',
-  color: colorOptions[0].value
+  color: colorOptions[0]?.value ?? ''
 });
 
 // Computed para character count
@@ -74,7 +74,7 @@ const resetForm = () => {
     date: defaultDate,
     time: '09:00',
     city: '',
-    color: colorOptions[0].value
+    color: colorOptions[0]?.value ?? ''
   };
 };
 

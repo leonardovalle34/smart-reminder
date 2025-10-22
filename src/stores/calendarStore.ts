@@ -1,17 +1,44 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import type { ICalendar } from '../interface/ICalendar';
+import { storageService, type StoredCalendarData } from '../services/calendarService';
 
 export const useCalendarStore = defineStore('calendar', () => {
-  // State
-  const currentDate = ref(new Date());
-  const reminders = ref<ICalendar[]>([]);
-  const selectedDate = ref<Date | null>(null);
+  // 🔹 1. CARREGAR ESTADO INICIAL DO LOCAL STORAGE
+  const loadInitialState = () => {
+    const storedData = storageService.loadCalendarData();
+
+    if (storedData) {
+      return {
+        currentDate: new Date(storedData.currentDate),
+        reminders: storedData.reminders.map((reminder) => ({
+          ...reminder,
+          date: new Date(reminder.date) // Converter string para Date
+        })),
+        selectedDate: storedData.selectedDate ? new Date(storedData.selectedDate) : null
+      };
+    }
+
+    // Estado padrão se não houver dados salvos
+    return {
+      currentDate: new Date(),
+      reminders: [],
+      selectedDate: null
+    };
+  };
+
+  const initialState = loadInitialState();
+
+  // 🔹 2. INICIALIZAR STATE COM DADOS DO LOCAL STORAGE
+  const currentDate = ref<Date>(initialState.currentDate);
+  const reminders = ref<ICalendar[]>(initialState.reminders);
+  const selectedDate = ref<Date | null>(initialState.selectedDate);
   const editingReminder = ref<ICalendar | null>(null);
 
-  // Getters
+  // 🔹 3. GETTERS (mantém igual)
   const currentMonth = computed(() => currentDate.value.getMonth());
   const currentYear = computed(() => currentDate.value.getFullYear());
+
   const getRemindersForDate = computed(() => (date: Date) => {
     return reminders.value
       .filter(
@@ -23,11 +50,11 @@ export const useCalendarStore = defineStore('calendar', () => {
       .sort((a, b) => a.date.getTime() - b.date.getTime());
   });
 
-  // Actions
+  // 🔹 4. ACTIONS
   const addReminder = (reminder: Omit<ICalendar, 'id'>) => {
     const newReminder: ICalendar = {
       ...reminder,
-      id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
+      id: Date.now().toString() + Math.random().toString(36).substring(2, 9)
     };
     reminders.value.push(newReminder);
   };
@@ -63,14 +90,61 @@ export const useCalendarStore = defineStore('calendar', () => {
   };
 
   const navigateMonth = (direction: 'prev' | 'next') => {
-    const newdate = new Date(currentDate.value);
+    const newDate = new Date(currentDate.value);
     if (direction === 'prev') {
-      newdate.setMonth(newdate.getMonth() - 1);
+      newDate.setMonth(newDate.getMonth() - 1);
     } else {
-      newdate.setMonth(newdate.getMonth() + 1);
+      newDate.setMonth(newDate.getMonth() + 1);
     }
-    currentDate.value = newdate;
+    currentDate.value = newDate;
   };
+
+  // 🔹 5. ACTION PARA SALVAR MANUALMENTE (opcional)
+  const saveToStorage = () => {
+    const dataToSave: StoredCalendarData = {
+      currentDate: currentDate.value.toISOString(),
+      reminders: reminders.value.map((reminder) => ({
+        ...reminder,
+        date: reminder.date.toISOString(),
+        weather: reminder.weather
+          ? {
+              ...reminder.weather,
+              icon: reminder.weather.icon ?? ''
+            }
+          : undefined
+      })),
+      selectedDate: selectedDate.value?.toISOString() || null
+    };
+
+    storageService.saveCalendarData(dataToSave);
+  };
+
+  // 🔹 6. WATCH PARA SALVAR AUTOMATICAMENTE
+  watch(
+    [currentDate, reminders, selectedDate],
+    () => {
+      // Debounce para não salvar a cada milissegundo
+      setTimeout(() => {
+        const dataToSave: StoredCalendarData = {
+          currentDate: currentDate.value.toISOString(),
+          reminders: reminders.value.map((reminder) => ({
+            ...reminder,
+            date: reminder.date.toISOString(),
+            weather: reminder.weather
+              ? {
+                  ...reminder.weather,
+                  icon: reminder.weather.icon ?? ''
+                }
+              : undefined
+          })),
+          selectedDate: selectedDate.value?.toISOString() || null
+        };
+
+        storageService.saveCalendarData(dataToSave);
+      }, 100);
+    },
+    { deep: true }
+  );
 
   return {
     // State
@@ -78,10 +152,12 @@ export const useCalendarStore = defineStore('calendar', () => {
     reminders,
     selectedDate,
     editingReminder,
+
     // Getters
     currentMonth,
     currentYear,
     getRemindersForDate,
+
     // Actions
     addReminder,
     updateReminder,
@@ -89,6 +165,7 @@ export const useCalendarStore = defineStore('calendar', () => {
     deleteRemindersByDate,
     setSelectedDate,
     setEditingReminder,
-    navigateMonth
+    navigateMonth,
+    saveToStorage
   };
 });

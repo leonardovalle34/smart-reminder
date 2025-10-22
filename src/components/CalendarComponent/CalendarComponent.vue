@@ -32,6 +32,29 @@ const handleSaveReminder = (reminderData: Omit<ICalendar, 'id'>) => {
   store.addReminder(reminderData);
 };
 
+const handleReminderClick = (date: Date) => {
+  store.setSelectedDate(date);
+
+  // Buscar lembretes desta data
+  const reminders = store.getRemindersForDate(date);
+
+  if (reminders.length === 1) {
+    // Se tiver apenas 1 lembrete, edita diretamente
+    if (reminders[0]) {
+      editReminder(reminders[0]);
+    }
+  } else if (reminders.length > 1) {
+    // Se tiver múltiplos, podemos:
+    // 1. Mostrar alerta por enquanto
+    alert(
+      `📅 ${reminders.length} reminders on ${date.toLocaleDateString()}\n\nClick on individual reminders to edit them.`
+    );
+
+    // 2. Ou abrir um modal de lista depois
+    console.log('Multiple reminders:', reminders);
+  }
+};
+
 const handleUpdateReminder = (reminder: ICalendar) => {
   store.updateReminder(reminder.id, reminder);
 };
@@ -41,7 +64,7 @@ const closeModal = () => {
   editingReminder.value = null;
 };
 
-// Calculate calendar days
+// 👇 **CALENDAR DAYS COM DADOS REAIS*
 const calendarDays = computed(() => {
   const year = store.currentYear;
   const month = store.currentMonth;
@@ -59,28 +82,50 @@ const calendarDays = computed(() => {
   const currentDate = new Date(startDate);
 
   while (currentDate <= endDate) {
-    const reminderCount = (currentDate.getDate() + currentDate.getMonth()) % 10;
+    // 👇 **Buscar lembretes da store**
+    const dateReminders = store.getRemindersForDate(new Date(currentDate));
+    const reminderCount = dateReminders.length;
 
-    // Temperatura baseada na cidade (mockado)
-    const baseTemp = cityInput.value.toLowerCase().includes('new york')
-      ? 15
-      : cityInput.value.toLowerCase().includes('los angeles')
-        ? 22
-        : cityInput.value.toLowerCase().includes('miami')
-          ? 28
-          : cityInput.value.toLowerCase().includes('london')
-            ? 12
-            : cityInput.value.toLowerCase().includes('tokyo')
-              ? 18
-              : 20;
+    // 👇 **COR REAL - do primeiro lembrete ou default**
+    const dotColor =
+      dateReminders.length > 0
+        ? dateReminders[0].color // Cor REAL do primeiro lembrete
+        : '#10b981'; // Cor default apenas para células vazias
+
+    // 👇 **DADOS DE CLIMA - reais ou mock como fallback**
+    let temperature = 20;
+    let weatherIcon = '☀️';
+
+    // Tentar usar dados reais de clima dos lembretes
+    const reminderWithWeather = dateReminders.find((r) => r.weather);
+    if (reminderWithWeather?.weather) {
+      temperature = reminderWithWeather.weather.temperature;
+      weatherIcon = reminderWithWeather.weather.icon;
+    } else {
+      // Fallback para dados mockados
+      const baseTemp = cityInput.value.toLowerCase().includes('new york')
+        ? 15
+        : cityInput.value.toLowerCase().includes('los angeles')
+          ? 22
+          : cityInput.value.toLowerCase().includes('miami')
+            ? 28
+            : cityInput.value.toLowerCase().includes('london')
+              ? 12
+              : cityInput.value.toLowerCase().includes('tokyo')
+                ? 18
+                : 20;
+
+      temperature = baseTemp + (currentDate.getDate() % 8);
+      weatherIcon = ['☀️', '🌧️', '⛅', '🌤️'][currentDate.getDate() % 4] || '☀️';
+    }
 
     days.push({
       date: new Date(currentDate),
       isCurrentMonth: currentDate.getMonth() === month,
-      reminderCount: reminderCount,
-      temperature: baseTemp + (currentDate.getDate() % 8),
-      weatherIcon: ['☀️', '🌧️', '⛅', '🌤️'][currentDate.getDate() % 4] || '☀️',
-      dotColor: reminderCount <= 3 ? '#10b981' : reminderCount <= 7 ? '#f59e0b' : '#ef4444'
+      reminderCount: reminderCount, // 👈 **NÚMERO REAL de lembretes**
+      temperature: temperature,
+      weatherIcon: weatherIcon,
+      dotColor: dotColor // 👈 **COR REAL dos lembretes**
     });
     currentDate.setDate(currentDate.getDate() + 1);
   }
@@ -198,6 +243,7 @@ const isToday = (date: Date) => {
               "
               :city-name="cityInput"
               @day-click="handleDayClick"
+              @reminder-click="handleReminderClick"
             />
           </div>
         </div>
