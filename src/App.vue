@@ -13,5 +13,6 @@ import CalendarComponent from './components/CalendarComponent/CalendarComponent.
 #app {
   min-height: 100vh;
   background-color: #f5f5f5;
+  padding: 0px;
 }
 </style>
