@@ -1,7 +1,7 @@
 <script lang="ts">
-export default {
-  name: 'HeaderComponent'
-};
+  export default {
+    name: 'HeaderComponent'
+  };
 </script>
 <template>
   <header class="bg-white border-b border-gray-200 flex-shrink-0">

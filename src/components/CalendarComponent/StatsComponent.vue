@@ -1,17 +1,17 @@
 <script lang="ts">
-export default {
-  name: 'StatsComponent'
-};
+  export default {
+    name: 'StatsComponent'
+  };
 </script>
 <script setup lang="ts">
-interface Props {
-  total: number;
-  days: number;
-  next: number;
-  past: number;
-}
+  interface Props {
+    total: number;
+    days: number;
+    next: number;
+    past: number;
+  }
 
-const props = defineProps<Props>();
+  const props = defineProps<Props>();
 </script>
 <template>
   <div class="grid grid-cols-4 gap-2 text-center">

@@ -1,7 +1,7 @@
 <script lang="ts">
-export default {
-  name: 'FooterComponent'
-};
+  export default {
+    name: 'FooterComponent'
+  };
 </script>
 <template>
   <footer class="bg-white border-t border-gray-200 flex-shrink-0">

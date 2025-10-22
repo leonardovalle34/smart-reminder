@@ -1,145 +1,157 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
-import { useCalendarStore } from '../../stores/calendarStore';
-import HeaderComponent from '../HeaderComponent/HeaderComponent.vue';
-import FooterComponent from '../FooterComponent/FooterComponent.vue';
-import CalendarDay from './CalendarDay.vue';
-import WeatherInput from '../Filters/WeatherInput.vue';
-import StatsComponent from './StatsComponent.vue';
-import ReminderModal from '../Modals/ReminderModal.vue';
-import type { ICalendar } from '../../interface/ICalendar';
-import { monthNames } from '../../utils/data';
+  import { computed, onMounted, ref } from 'vue';
+  import { useCalendarStore } from '../../stores/calendarStore';
+  import HeaderComponent from '../HeaderComponent/HeaderComponent.vue';
+  import FooterComponent from '../FooterComponent/FooterComponent.vue';
+  import CalendarDay from './CalendarDay.vue';
+  import WeatherInput from '../Filters/WeatherInput.vue';
+  import StatsComponent from './StatsComponent.vue';
+  import ReminderModal from '../Modals/ReminderModal.vue';
+  import type { ICalendar } from '../../interface/ICalendar';
+  import { monthNames } from '../../utils/data';
+  import ReminderListModal from '../Modals/ReminderListModal.vue';
 
-const store = useCalendarStore();
-const showReminderModal = ref(false);
-const editingReminder = ref<ICalendar | null>(null);
-const cityInput = ref('New York');
+  const store = useCalendarStore();
+  const showReminderModal = ref(false);
+  const showReminderListModal = ref(false);
+  const editingReminder = ref<ICalendar | null>(null);
+  const cityInput = ref('New York');
 
-const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+  const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-const handleDayClick = (date: Date) => {
-  store.setSelectedDate(date);
-  showReminderModal.value = true;
-  editingReminder.value = null;
-};
+  const handleInputCityChange = (city: string) => {
+    cityInput.value = city;
+    localStorage.setItem('selectedCity', city);
+  };
 
-const editReminder = (reminder: ICalendar) => {
-  editingReminder.value = reminder;
-  showReminderModal.value = true;
-};
+  const handleDayClick = (date: Date) => {
+    store.setSelectedDate(date);
+    showReminderModal.value = true;
+    editingReminder.value = null;
+  };
 
-const handleSaveReminder = (reminderData: Omit<ICalendar, 'id'>) => {
-  store.addReminder(reminderData);
-};
+  const editReminder = (reminder: ICalendar) => {
+    editingReminder.value = reminder;
+    showReminderListModal.value = false;
+    showReminderModal.value = true;
+  };
 
-const handleReminderClick = (date: Date) => {
-  store.setSelectedDate(date);
+  const handleSaveReminder = (reminderData: Omit<ICalendar, 'id'>) => {
+    store.addReminder(reminderData);
+  };
 
-  // Buscar lembretes desta data
-  const reminders = store.getRemindersForDate(date);
+  const handleReminderClick = (date: Date) => {
+    store.setSelectedDate(date);
+    showReminderListModal.value = true;
+    showReminderModal.value = false;
+  };
+  //edit modal functions
 
-  if (reminders.length === 1) {
-    // Se tiver apenas 1 lembrete, edita diretamente
-    if (reminders[0]) {
-      editReminder(reminders[0]);
+  const handleDeleteReminder = (reminderId: string) => {
+    store.deleteReminder(reminderId);
+  };
+
+  const handleDeleteAllReminders = () => {
+    if (store.selectedDate) {
+      store.deleteRemindersByDate(store.selectedDate);
+      showReminderListModal.value = false;
     }
-  } else if (reminders.length > 1) {
-    // Se tiver múltiplos, podemos:
-    // 1. Mostrar alerta por enquanto
-    alert(
-      `📅 ${reminders.length} reminders on ${date.toLocaleDateString()}\n\nClick on individual reminders to edit them.`
+  };
+
+  const handleAddNewFromList = () => {
+    showReminderListModal.value = false;
+    showReminderModal.value = true;
+    editingReminder.value = null;
+  };
+
+  const handleUpdateReminder = (reminder: ICalendar) => {
+    store.updateReminder(reminder.id, reminder);
+  };
+
+  const closeModal = () => {
+    showReminderModal.value = false;
+    editingReminder.value = null;
+  };
+
+  // 👇 **CALENDAR DAYS COM DADOS REAIS*
+  const calendarDays = computed(() => {
+    const year = store.currentYear;
+    const month = store.currentMonth;
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    const startDate = new Date(firstDayOfMonth);
+    startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay());
+
+    const endDate = new Date(lastDayOfMonth);
+    endDate.setDate(endDate.getDate() + (6 - lastDayOfMonth.getDay()));
+
+    const days = [];
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      // 👇 **Buscar lembretes da store**
+      const dateReminders = store.getRemindersForDate(new Date(currentDate));
+      const reminderCount = dateReminders.length;
+
+      // 👇 **COR REAL - do primeiro lembrete ou default**
+      const dotColors = dateReminders.map((reminder) => reminder.color).slice(0, 3);
+
+      // 👇 **DADOS DE CLIMA - reais ou mock como fallback**
+      let temperature = 20;
+      let weatherIcon = '☀️';
+
+      // Tentar usar dados reais de clima dos lembretes
+      const reminderWithWeather = dateReminders.find((r) => r.weather);
+      if (reminderWithWeather?.weather) {
+        temperature = reminderWithWeather.weather.temperature;
+        weatherIcon = reminderWithWeather.weather.icon ?? '☀️';
+      } else {
+        // Fallback para dados mockados
+        const baseTemp = cityInput.value.toLowerCase().includes('new york')
+          ? 15
+          : cityInput.value.toLowerCase().includes('los angeles')
+            ? 22
+            : cityInput.value.toLowerCase().includes('miami')
+              ? 28
+              : cityInput.value.toLowerCase().includes('london')
+                ? 12
+                : cityInput.value.toLowerCase().includes('tokyo')
+                  ? 18
+                  : 20;
+
+        temperature = baseTemp + (currentDate.getDate() % 8);
+        weatherIcon = ['☀️', '🌧️', '⛅', '🌤️'][currentDate.getDate() % 4] || '☀️';
+      }
+
+      days.push({
+        date: new Date(currentDate),
+        isCurrentMonth: currentDate.getMonth() === month,
+        reminderCount: reminderCount, // 👈 **NÚMERO REAL de lembretes**
+        temperature: temperature,
+        weatherIcon: weatherIcon,
+        dotColors: dotColors, // 👈 **COR REAL dos lembretes**
+        hasMoreReminders: reminderCount > 3
+      });
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    return days;
+  });
+
+  const isToday = (date: Date) => {
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
     );
+  };
 
-    // 2. Ou abrir um modal de lista depois
-    console.log('Multiple reminders:', reminders);
-  }
-};
-
-const handleUpdateReminder = (reminder: ICalendar) => {
-  store.updateReminder(reminder.id, reminder);
-};
-
-const closeModal = () => {
-  showReminderModal.value = false;
-  editingReminder.value = null;
-};
-
-// 👇 **CALENDAR DAYS COM DADOS REAIS*
-const calendarDays = computed(() => {
-  const year = store.currentYear;
-  const month = store.currentMonth;
-
-  const firstDayOfMonth = new Date(year, month, 1);
-  const lastDayOfMonth = new Date(year, month + 1, 0);
-
-  const startDate = new Date(firstDayOfMonth);
-  startDate.setDate(startDate.getDate() - firstDayOfMonth.getDay());
-
-  const endDate = new Date(lastDayOfMonth);
-  endDate.setDate(endDate.getDate() + (6 - lastDayOfMonth.getDay()));
-
-  const days = [];
-  const currentDate = new Date(startDate);
-
-  while (currentDate <= endDate) {
-    // 👇 **Buscar lembretes da store**
-    const dateReminders = store.getRemindersForDate(new Date(currentDate));
-    const reminderCount = dateReminders.length;
-
-    // 👇 **COR REAL - do primeiro lembrete ou default**
-    const dotColor =
-      dateReminders.length > 0
-        ? dateReminders[0].color // Cor REAL do primeiro lembrete
-        : '#10b981'; // Cor default apenas para células vazias
-
-    // 👇 **DADOS DE CLIMA - reais ou mock como fallback**
-    let temperature = 20;
-    let weatherIcon = '☀️';
-
-    // Tentar usar dados reais de clima dos lembretes
-    const reminderWithWeather = dateReminders.find((r) => r.weather);
-    if (reminderWithWeather?.weather) {
-      temperature = reminderWithWeather.weather.temperature;
-      weatherIcon = reminderWithWeather.weather.icon;
-    } else {
-      // Fallback para dados mockados
-      const baseTemp = cityInput.value.toLowerCase().includes('new york')
-        ? 15
-        : cityInput.value.toLowerCase().includes('los angeles')
-          ? 22
-          : cityInput.value.toLowerCase().includes('miami')
-            ? 28
-            : cityInput.value.toLowerCase().includes('london')
-              ? 12
-              : cityInput.value.toLowerCase().includes('tokyo')
-                ? 18
-                : 20;
-
-      temperature = baseTemp + (currentDate.getDate() % 8);
-      weatherIcon = ['☀️', '🌧️', '⛅', '🌤️'][currentDate.getDate() % 4] || '☀️';
-    }
-
-    days.push({
-      date: new Date(currentDate),
-      isCurrentMonth: currentDate.getMonth() === month,
-      reminderCount: reminderCount, // 👈 **NÚMERO REAL de lembretes**
-      temperature: temperature,
-      weatherIcon: weatherIcon,
-      dotColor: dotColor // 👈 **COR REAL dos lembretes**
-    });
-    currentDate.setDate(currentDate.getDate() + 1);
-  }
-  return days;
-});
-
-const isToday = (date: Date) => {
-  const today = new Date();
-  return (
-    date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear()
-  );
-};
+  onMounted(() => {
+    const cityFromDb = localStorage.getItem('selectedCity');
+    cityFromDb ? (cityInput.value = cityFromDb) : (cityInput.value = 'indianapolis');
+  });
 </script>
 
 <template>
@@ -203,7 +215,7 @@ const isToday = (date: Date) => {
 
           <!-- Input de Cidade com Autocomplete -->
           <div class="flex items-center space-x-2 relative">
-            <WeatherInput v-model="cityInput" />
+            <WeatherInput v-model="cityInput" @update:model-value="handleInputCityChange" />
           </div>
         </div>
 
@@ -282,6 +294,16 @@ const isToday = (date: Date) => {
         @close="closeModal"
         @save="handleSaveReminder"
         @update="handleUpdateReminder"
+      />
+      <ReminderListModal
+        :show="showReminderListModal"
+        :selected-date="store.selectedDate ?? new Date()"
+        :reminders="store.getRemindersForDate(store.selectedDate ?? new Date())"
+        @close="showReminderListModal = false"
+        @edit="editReminder"
+        @delete="handleDeleteReminder"
+        @delete-all="handleDeleteAllReminders"
+        @add-new="handleAddNewFromList"
       />
     </main>
     <FooterComponent />

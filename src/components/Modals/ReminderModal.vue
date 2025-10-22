@@ -1,144 +1,151 @@
 <script lang="ts">
-export default {
-  name: 'ReminderModal'
-};
+  export default {
+    name: 'ReminderModal'
+  };
 </script>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import type { ICalendar } from '../../interface/ICalendar';
-import { colorOptions } from '../../utils/data';
+  import { ref, computed, watch } from 'vue';
+  import type { ICalendar } from '../../interface/ICalendar';
+  import { colorOptions } from '../../utils/data';
 
-interface Props {
-  show: boolean;
-  selectedDate?: Date;
-  editingReminder?: ICalendar | null;
-}
-
-interface Emits {
-  (e: 'close'): void;
-  (e: 'save', reminder: Omit<ICalendar, 'id'>): void;
-  (e: 'update', reminder: ICalendar): void;
-}
-
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
-
-// Form data
-const form = ref({
-  text: '',
-  date: '',
-  time: '09:00',
-  city: '',
-  color: colorOptions[0]?.value ?? ''
-});
-
-// Computed para character count
-const charCount = computed(() => form.value.text.length);
-const maxChars = 30;
-
-// Reset form quando modal abrir/fechar
-watch(
-  () => props.show,
-  (isOpen) => {
-    if (isOpen) {
-      resetForm();
-    }
+  interface Props {
+    show: boolean;
+    selectedDate?: Date;
+    editingReminder?: ICalendar | null;
   }
-);
 
-// Preencher form quando editar
-watch(
-  () => props.editingReminder,
-  (reminder) => {
-    if (reminder) {
-      form.value = {
-        text: reminder.text,
-        date: formatDateForInput(reminder.date),
-        time: formatTimeForInput(reminder.date),
-        city: reminder.city,
-        color: reminder.color
-      };
-    }
+  interface Emits {
+    (e: 'close'): void;
+    (e: 'save', reminder: Omit<ICalendar, 'id'>): void;
+    (e: 'update', reminder: ICalendar): void;
   }
-);
 
-// Reset form
-const resetForm = () => {
-  const defaultDate = props.selectedDate
-    ? formatDateForInput(props.selectedDate)
-    : formatDateForInput(new Date());
+  const props = defineProps<Props>();
+  const emit = defineEmits<Emits>();
 
-  form.value = {
+  // Form data
+  const form = ref({
     text: '',
-    date: defaultDate,
+    date: '',
     time: '09:00',
     city: '',
     color: colorOptions[0]?.value ?? ''
+  });
+
+  // Computed para character count
+  const charCount = computed(() => form.value.text.length);
+  const maxChars = 30;
+
+  // Reset form quando modal abrir/fechar
+  watch(
+    () => props.show,
+    (isOpen) => {
+      if (isOpen) {
+        resetForm();
+      }
+    }
+  );
+
+  // Preencher form quando editar
+  watch(
+    () => props.editingReminder,
+    (reminder) => {
+      if (reminder) {
+        form.value = {
+          text: reminder.text,
+          date: formatDateForInput(
+            typeof reminder.date === 'string' ? new Date(reminder.date) : reminder.date
+          ),
+          time: formatTimeForInput(
+            typeof reminder.date === 'string' ? new Date(reminder.date) : reminder.date
+          ),
+          city: reminder.city,
+          color: reminder.color
+        };
+      }
+    }
+  );
+
+  // Reset form
+  const resetForm = () => {
+    const defaultDate = props.selectedDate
+      ? formatDateForInput(props.selectedDate)
+      : formatDateForInput(new Date());
+
+    form.value = {
+      text: '',
+      date: defaultDate,
+      time: '09:00',
+      city: '',
+      color: colorOptions[0]?.value ?? ''
+    };
   };
-};
 
-// Formatadores
-const formatDateForInput = (date: Date): string => {
-  return date.toISOString().split('T')[0];
-};
-
-const formatTimeForInput = (date: Date): string => {
-  return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
-};
-
-// Validação
-const validateForm = (): boolean => {
-  if (!form.value.text.trim()) {
-    alert('Please enter reminder text');
-    return false;
-  }
-  if (form.value.text.length > maxChars) {
-    alert(`Reminder text cannot exceed ${maxChars} characters`);
-    return false;
-  }
-  if (!form.value.city.trim()) {
-    alert('Please enter a city');
-    return false;
-  }
-  if (!form.value.date || !form.value.time) {
-    alert('Please select date and time');
-    return false;
-  }
-  return true;
-};
-
-// Submit
-const handleSubmit = () => {
-  if (!validateForm()) return;
-
-  const dateTime = new Date(`${form.value.date}T${form.value.time}`);
-
-  const reminderData = {
-    text: form.value.text.trim(),
-    date: dateTime,
-    city: form.value.city.trim(),
-    color: form.value.color
+  // Format
+  const formatDateForInput = (date: Date): string => {
+    if (!date || isNaN(date.getTime())) {
+      return '';
+    }
+    return date.toISOString().split('T')[0] ?? '';
   };
 
-  if (props.editingReminder) {
-    emit('update', { ...props.editingReminder, ...reminderData });
-  } else {
-    emit('save', reminderData);
-  }
+  const formatTimeForInput = (date: Date): string => {
+    return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
+  };
 
-  emit('close');
-};
+  // Validation
+  const validateForm = (): boolean => {
+    if (!form.value.text.trim()) {
+      alert('Please enter reminder text');
+      return false;
+    }
+    if (form.value.text.length > maxChars) {
+      alert(`Reminder text cannot exceed ${maxChars} characters`);
+      return false;
+    }
+    if (!form.value.city.trim()) {
+      alert('Please enter a city');
+      return false;
+    }
+    if (!form.value.date || !form.value.time) {
+      alert('Please select date and time');
+      return false;
+    }
+    return true;
+  };
 
-// Close modal
-const closeModal = () => {
-  emit('close');
-};
+  // Submit
+  const handleSubmit = () => {
+    if (!validateForm()) return;
 
-// Prevenir fechamento ao clicar no conteúdo
-const stopPropagation = (event: Event) => {
-  event.stopPropagation();
-};
+    const dateTime = new Date(`${form.value.date}T${form.value.time}`);
+
+    const reminderData = {
+      text: form.value.text.trim(),
+      date: dateTime,
+      city: form.value.city.trim(),
+      color: form.value.color
+    };
+
+    if (props.editingReminder) {
+      emit('update', { ...props.editingReminder, ...reminderData });
+    } else {
+      emit('save', reminderData);
+    }
+
+    emit('close');
+  };
+
+  // Close modal
+  const closeModal = () => {
+    emit('close');
+  };
+
+  // Prevenir fechamento ao clicar no conteúdo
+  const stopPropagation = (event: Event) => {
+    event.stopPropagation();
+  };
 </script>
 
 <template>
@@ -269,16 +276,16 @@ const stopPropagation = (event: Event) => {
 </template>
 
 <style scoped>
-/* Custom styles for better date/time input appearance */
-input[type='date']::-webkit-calendar-picker-indicator,
-input[type='time']::-webkit-calendar-picker-indicator {
-  cursor: pointer;
-  padding: 4px;
-  border-radius: 4px;
-}
+  /* Custom styles for better date/time input appearance */
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+  }
 
-input[type='date']:focus,
-input[type='time']:focus {
-  background-color: white;
-}
+  input[type='date']:focus,
+  input[type='time']:focus {
+    background-color: white;
+  }
 </style>

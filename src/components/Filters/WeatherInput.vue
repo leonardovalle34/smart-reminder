@@ -1,79 +1,79 @@
 <script lang="ts">
-export default {
-  name: 'WeatherInput'
-};
+  export default {
+    name: 'WeatherInput'
+  };
 </script>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
-import { availableCities } from '../../utils/data';
+  import { ref, watch } from 'vue';
+  import { availableCities } from '../../utils/data';
 
-interface Emits {
-  (e: 'update:modelValue', value: string): void;
-}
-
-const emit = defineEmits<Emits>();
-
-interface Props {
-  modelValue: string;
-}
-
-const props = defineProps<Props>();
-
-// Estado do autocomplete
-const showSuggestions = ref(false);
-const filteredCities = ref<string[]>([]);
-const inputValue = ref(props.modelValue);
-
-// Watch para sincronizar com o v-model externo
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    inputValue.value = newValue;
-  }
-);
-
-// Filtrar cidades baseado no input
-const filterCities = (input: string) => {
-  emit('update:modelValue', input);
-
-  if (input.length < 2) {
-    filteredCities.value = [];
-    showSuggestions.value = false;
-    return;
+  interface Emits {
+    (e: 'update:modelValue', value: string): void;
   }
 
-  filteredCities.value = availableCities
-    .filter((city) => city.toLowerCase().includes(input.toLowerCase()))
-    .slice(0, 6); // Mostrar até 6 sugestões
+  const emit = defineEmits<Emits>();
 
-  showSuggestions.value = filteredCities.value.length > 0;
-};
+  interface Props {
+    modelValue: string;
+  }
 
-// Selecionar uma cidade das sugestões
-const selectCity = (city: string) => {
-  inputValue.value = city;
-  emit('update:modelValue', city);
-  showSuggestions.value = false;
-};
+  const props = defineProps<Props>();
 
-// Fechar sugestões ao clicar fora (com delay para permitir clique)
-const closeSuggestions = () => {
-  setTimeout(() => {
+  // Estado do autocomplete
+  const showSuggestions = ref(false);
+  const filteredCities = ref<string[]>([]);
+  const inputValue = ref(props.modelValue);
+
+  // Watch para sincronizar com o v-model externo
+  watch(
+    () => props.modelValue,
+    (newValue) => {
+      inputValue.value = newValue;
+    }
+  );
+
+  // Filtrar cidades baseado no input
+  const filterCities = (input: string) => {
+    //emit('update:modelValue', input);
+
+    if (input.length < 2) {
+      filteredCities.value = [];
+      showSuggestions.value = false;
+      return;
+    }
+
+    filteredCities.value = availableCities
+      .filter((city) => city.toLowerCase().includes(input.toLowerCase()))
+      .slice(0, 6); // Mostrar até 6 sugestões
+
+    showSuggestions.value = filteredCities.value.length > 0;
+  };
+
+  // Selecionar uma cidade das sugestões
+  const selectCity = (city: string) => {
+    inputValue.value = city;
+    emit('update:modelValue', city);
     showSuggestions.value = false;
-  }, 200);
-};
+  };
 
-// Focar no input quando o componente montar
-const inputRef = ref<HTMLInputElement>();
+  // Fechar sugestões ao clicar fora (com delay para permitir clique)
+  const closeSuggestions = () => {
+    setTimeout(() => {
+      showSuggestions.value = false;
+    }, 200);
+  };
 
-// Método para focar no input (pode ser chamado externamente se necessário)
-const focus = () => {
-  inputRef.value?.focus();
-};
+  // Focar no input quando o componente montar
+  const inputRef = ref<HTMLInputElement>();
 
-// Expor o método focus se necessário
-defineExpose({ focus });
+  // Método para focar no input (pode ser chamado externamente se necessário)
+  const focus = () => {
+    inputRef.value?.focus();
+  };
+
+  // Expor o método focus se necessário
+  defineExpose({ focus });
 </script>
 
 <template>
@@ -84,7 +84,6 @@ defineExpose({ focus });
         ref="inputRef"
         v-model="inputValue"
         @input="filterCities(inputValue)"
-        @focus="filterCities(inputValue)"
         @blur="closeSuggestions"
         type="text"
         placeholder="Enter your city..."
@@ -144,18 +143,18 @@ defineExpose({ focus });
 </template>
 
 <style scoped>
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-5px);
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(-5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-.animate-fade-in {
-  animation: fade-in 0.2s ease-out;
-}
+  .animate-fade-in {
+    animation: fade-in 0.2s ease-out;
+  }
 </style>
