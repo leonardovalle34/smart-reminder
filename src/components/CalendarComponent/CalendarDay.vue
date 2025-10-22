@@ -1,26 +1,32 @@
 <script lang="ts">
-export default {
-  name: 'CalendarDay'
-};
+  export default {
+    name: 'CalendarDay'
+  };
 </script>
 
 <script setup lang="ts">
-interface Props {
-  day: {
-    date: Date;
-    isCurrentMonth: boolean;
-    reminderCount: number;
-    temperature: number;
-    weatherIcon: string;
-    dotColor: string;
-  };
-  isToday: boolean;
-  isSelected: boolean;
-  cityName: string;
-}
+  interface Props {
+    day: {
+      date: Date;
+      isCurrentMonth: boolean;
+      reminderCount: number;
+      temperature: number;
+      weatherIcon: string;
+      dotColors: string[];
+      hasMoreReminders: boolean;
+    };
+    isToday: boolean;
+    isSelected: boolean;
+    cityName: string;
+  }
 
-defineProps<Props>();
-defineEmits(['dayClick']);
+  interface Emits {
+    (e: 'dayClick', date: Date): void;
+    (e: 'reminderClick', date: Date): void;
+  }
+
+  defineProps<Props>();
+  defineEmits<Emits>();
 </script>
 
 <template>
@@ -47,12 +53,25 @@ defineEmits(['dayClick']);
     </div>
 
     <!-- Single Dot -->
-    <div
-      v-if="day.reminderCount > 0"
-      class="w-2 h-2 rounded-full"
-      :style="{ backgroundColor: day.dotColor }"
-    />
+    <div v-if="day.reminderCount > 0" class="flex justify-center space-x-0.5">
+      <!-- Dots das cores reais -->
+      <div
+        v-for="(color, index) in day.dotColors"
+        :key="index"
+        @click.stop="$emit('reminderClick', day.date)"
+        class="w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform"
+        :style="{ backgroundColor: color }"
+      />
 
+      <!-- Indicador "+" quando tem mais de 3 lembretes -->
+      <div
+        v-if="day.hasMoreReminders"
+        @click.stop="$emit('reminderClick', day.date)"
+        class="w-2 h-2 rounded-full bg-gray-400 flex items-center justify-center text-[6px] text-white font-bold cursor-pointer"
+      >
+        +
+      </div>
+    </div>
     <!-- Tooltip -->
     <div
       class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10"

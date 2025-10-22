@@ -1,7 +1,7 @@
 <script lang="ts">
-export default {
-  name: 'HeaderComponent'
-};
+  export default {
+    name: 'HeaderComponent'
+  };
 </script>
 <template>
   <header class="bg-white border-b border-gray-200 flex-shrink-0">
@@ -19,32 +19,8 @@ export default {
               />
             </svg>
           </div>
-          <span class="text-xl font-bold text-gray-900">CalendarPro</span>
+          <span class="text-xl font-bold text-gray-900">Smart Reminder</span>
         </div>
-
-        <!-- Navigation Menu -->
-        <nav class="hidden md:flex space-x-8">
-          <a
-            href="#"
-            class="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-            >Dashboard</a
-          >
-          <a
-            href="#"
-            class="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-            >Calendar</a
-          >
-          <a
-            href="#"
-            class="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-            >Reminders</a
-          >
-          <a
-            href="#"
-            class="text-gray-700 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-            >Settings</a
-          >
-        </nav>
 
         <!-- User Menu -->
         <div class="flex items-center space-x-4">

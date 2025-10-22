@@ -1,7 +1,7 @@
 export interface ICalendar {
   id: string;
   text: string;
-  date: Date;
+  date: Date | string;
   city: string;
   color: string;
   weather?: IWeatherInfo;
