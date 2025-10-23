@@ -35,8 +35,7 @@
 
   // Filtrar cidades baseado no input
   const filterCities = (input: string) => {
-    //emit('update:modelValue', input);
-
+    emit('update:modelValue', input);
     if (input.length < 2) {
       filteredCities.value = [];
       showSuggestions.value = false;

@@ -8,8 +8,9 @@
   import { ref, computed, watch } from 'vue';
   import type { ICalendar } from '../../interface/ICalendar';
   import { colorOptions } from '../../utils/data';
+  import DangerToast from '../Toasts/DangerToast.vue';
 
-  interface Props {
+  interface IProps {
     show: boolean;
     selectedDate?: Date;
     editingReminder?: ICalendar | null;
@@ -21,10 +22,11 @@
     (e: 'update', reminder: ICalendar): void;
   }
 
-  const props = defineProps<Props>();
+  const props = defineProps<IProps>();
   const emit = defineEmits<Emits>();
+  const showErrorToast = ref(false);
+  const errorMessage = ref('');
 
-  // Form data
   const form = ref({
     text: '',
     date: '',
@@ -33,11 +35,9 @@
     color: colorOptions[0]?.value ?? ''
   });
 
-  // Computed para character count
   const charCount = computed(() => form.value.text.length);
   const maxChars = 30;
 
-  // Reset form quando modal abrir/fechar
   watch(
     () => props.show,
     (isOpen) => {
@@ -47,7 +47,6 @@
     }
   );
 
-  // Preencher form quando editar
   watch(
     () => props.editingReminder,
     (reminder) => {
@@ -67,7 +66,6 @@
     }
   );
 
-  // Reset form
   const resetForm = () => {
     const defaultDate = props.selectedDate
       ? formatDateForInput(props.selectedDate)
@@ -82,7 +80,6 @@
     };
   };
 
-  // Format
   const formatDateForInput = (date: Date): string => {
     if (!date || isNaN(date.getTime())) {
       return '';
@@ -94,28 +91,36 @@
     return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   };
 
-  // Validation
+  const showToast = (msg: string) => {
+    showErrorToast.value = true;
+    errorMessage.value = msg;
+    setTimeout(() => {
+      showErrorToast.value = false;
+      errorMessage.value = '';
+    }, 3000);
+  };
+
   const validateForm = (): boolean => {
     if (!form.value.text.trim()) {
-      alert('Please enter reminder text');
+      showToast('Please enter reminder text');
       return false;
     }
     if (form.value.text.length > maxChars) {
-      alert(`Reminder text cannot exceed ${maxChars} characters`);
+      showToast(`Reminder text cannot exceed ${maxChars} characters`);
       return false;
     }
     if (!form.value.city.trim()) {
-      alert('Please enter a city');
+      showToast('Please enter city name');
       return false;
     }
     if (!form.value.date || !form.value.time) {
-      alert('Please select date and time');
+      showToast('Please select date and time');
       return false;
     }
+
     return true;
   };
 
-  // Submit
   const handleSubmit = () => {
     if (!validateForm()) return;
 
@@ -137,12 +142,10 @@
     emit('close');
   };
 
-  // Close modal
   const closeModal = () => {
     emit('close');
   };
 
-  // Prevenir fechamento ao clicar no conteúdo
   const stopPropagation = (event: Event) => {
     event.stopPropagation();
   };
@@ -174,10 +177,7 @@
           </svg>
         </button>
       </div>
-
-      <!-- Form -->
       <div class="p-6 space-y-6">
-        <!-- Reminder Text -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2"> Reminder Text * </label>
           <textarea
@@ -199,8 +199,6 @@
             </span>
           </div>
         </div>
-
-        <!-- Date and Time -->
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-2"> Date * </label>
@@ -219,8 +217,6 @@
             />
           </div>
         </div>
-
-        <!-- City -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-2"> City * </label>
           <input
@@ -230,8 +226,6 @@
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           />
         </div>
-
-        <!-- Color Selection -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-3"> Color * </label>
           <div class="grid grid-cols-3 gap-3">
@@ -253,8 +247,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer -->
       <div
         class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-xl flex justify-end space-x-3"
       >
@@ -273,10 +265,10 @@
       </div>
     </div>
   </div>
+  <DangerToast v-if="showErrorToast" :message="errorMessage" />
 </template>
 
 <style scoped>
-  /* Custom styles for better date/time input appearance */
   input[type='date']::-webkit-calendar-picker-indicator,
   input[type='time']::-webkit-calendar-picker-indicator {
     cursor: pointer;

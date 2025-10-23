@@ -90,7 +90,6 @@
       class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-hidden"
       @click="stopPropagation"
     >
-      <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <div>
           <h2 class="text-xl font-semibold text-gray-800">Reminders</h2>
@@ -107,8 +106,6 @@
           </svg>
         </button>
       </div>
-
-      <!-- Reminders List -->
       <div class="overflow-y-auto max-h-96">
         <div v-if="sortedReminders.length === 0" class="p-8 text-center text-gray-500">
           <svg
@@ -126,7 +123,6 @@
           </svg>
           <p>No reminders for this day</p>
         </div>
-
         <div
           v-for="reminder in sortedReminders"
           :key="reminder.id"
@@ -182,8 +178,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Footer Actions -->
       <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-between">
         <button
           v-if="reminders.length > 0"

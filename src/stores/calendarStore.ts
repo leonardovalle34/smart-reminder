@@ -1,152 +1,120 @@
 import { defineStore } from 'pinia';
-import { ref, computed, watch } from 'vue';
 import type { ICalendar } from '../interface/ICalendar';
 import { storageService, type IStoredCalendarData } from '../services/calendarService';
 import { generateReminderId } from '../utils/config';
 
-export const useCalendarStore = defineStore('calendar', () => {
-  //LOAD STORAGE
-  const loadInitialState = () => {
-    const storedData = storageService.loadCalendarData();
+export const useCalendarStore = defineStore('calendar', {
+  state: () => ({
+    currentDate: new Date(),
+    reminders: [] as ICalendar[],
+    selectedDate: null as Date | null,
+    editingReminder: null as ICalendar | null,
+    isLoading: false as boolean
+  }),
 
-    if (storedData) {
-      return {
-        currentDate: new Date(storedData.currentDate),
-        reminders: storedData.reminders.map((reminder) => ({
+  getters: {
+    currentMonth: (state) => state.currentDate.getMonth(),
+    currentYear: (state) => state.currentDate.getFullYear(),
+
+    getRemindersForDate: (state) => (date: Date) => {
+      return state.reminders
+        .filter(
+          (reminder) =>
+            reminder.date.getDate() === date.getDate() &&
+            reminder.date.getMonth() === date.getMonth() &&
+            reminder.date.getFullYear() === date.getFullYear()
+        )
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
+    }
+  },
+
+  actions: {
+    loadInitialState() {
+      const storedData = storageService.loadCalendarData();
+
+      if (storedData) {
+        this.currentDate = new Date(storedData.currentDate);
+        this.reminders = storedData.reminders.map((reminder) => ({
           ...reminder,
           date: new Date(reminder.date)
-        })),
-        selectedDate: storedData.selectedDate ? new Date(storedData.selectedDate) : null
-      };
-    }
+        }));
+        this.selectedDate = storedData.selectedDate ? new Date(storedData.selectedDate) : null;
+      }
+    },
 
-    return {
-      currentDate: new Date(),
-      reminders: [],
-      selectedDate: null
-    };
-  };
+    addReminder(reminder: Omit<ICalendar, 'id'>) {
+      this.isLoading = true;
 
-  const initialState = loadInitialState();
-
-  //STATE
-  const currentDate = ref<Date>(initialState.currentDate);
-  const reminders = ref<ICalendar[]>(initialState.reminders);
-  const selectedDate = ref<Date | null>(initialState.selectedDate);
-  const editingReminder = ref<ICalendar | null>(null);
-  const isLoading = ref<boolean>(false);
-
-  //GETTERS
-  const currentMonth = computed(() => currentDate.value.getMonth());
-  const currentYear = computed(() => currentDate.value.getFullYear());
-
-  const getRemindersForDate = computed(() => (date: Date) => {
-    return reminders.value
-      .filter(
-        (reminder) =>
-          reminder.date.getDate() === date.getDate() &&
-          reminder.date.getMonth() === date.getMonth() &&
-          reminder.date.getFullYear() === date.getFullYear()
-      )
-      .sort((a, b) => a.date.getTime() - b.date.getTime());
-  });
-
-  //ACTIONS
-  const addReminder = (reminder: Omit<ICalendar, 'id'>) => {
-    isLoading.value = true;
-
-    try {
-      const newReminder: ICalendar = {
-        ...reminder,
-        id: generateReminderId()
-      };
-
-      reminders.value.push(newReminder);
-    } catch (error) {
-      console.error('Error adding reminder:', error);
-    } finally {
-      isLoading.value = false;
-    }
-  };
-
-  const updateReminder = (id: string, updatedReminder: Partial<ICalendar>) => {
-    const index = reminders.value.findIndex((reminder) => reminder.id === id);
-    if (index === -1) return;
-
-    reminders.value[index] = {
-      ...reminders.value[index],
-      ...updatedReminder
-    } as ICalendar;
-  };
-
-  const deleteReminder = (id: string) => {
-    reminders.value = reminders.value.filter((reminder) => reminder.id !== id);
-  };
-
-  const deleteRemindersByDate = (date: Date) => {
-    reminders.value = reminders.value.filter(
-      (reminder) =>
-        !(
-          reminder.date.getDate() === date.getDate() &&
-          reminder.date.getMonth() === date.getMonth() &&
-          reminder.date.getFullYear() === date.getFullYear()
-        )
-    );
-  };
-
-  //UI ACTIONS
-  const setSelectedDate = (date: Date | null) => {
-    selectedDate.value = date;
-  };
-
-  const navigateMonth = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate.value);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
-    currentDate.value = newDate;
-  };
-
-  watch(
-    [currentDate, reminders, selectedDate],
-    () => {
-      setTimeout(() => {
-        const dataToSave: IStoredCalendarData = {
-          currentDate: currentDate.value.toISOString(),
-          reminders: reminders.value.map((reminder) => ({
-            ...reminder,
-            date: reminder.date.toISOString()
-          })),
-          selectedDate: selectedDate.value?.toISOString() || null
+      try {
+        const newReminder: ICalendar = {
+          ...reminder,
+          id: generateReminderId()
         };
 
-        storageService.saveCalendarData(dataToSave);
-      }, 100);
+        this.reminders.push(newReminder);
+      } catch (error) {
+        console.error('Error adding reminder:', error);
+      } finally {
+        this.isLoading = false;
+      }
     },
-    { deep: true }
-  );
 
-  return {
-    // State
-    currentDate,
-    reminders,
-    selectedDate,
-    editingReminder,
-    isLoading,
+    updateReminder(id: string, updatedReminder: Partial<ICalendar>) {
+      const index = this.reminders.findIndex((reminder) => reminder.id === id);
+      if (index === -1) return;
 
-    // Getters
-    currentMonth,
-    currentYear,
-    getRemindersForDate,
+      this.reminders[index] = {
+        ...this.reminders[index],
+        ...updatedReminder
+      } as ICalendar;
+    },
 
-    // Actions
-    addReminder,
-    updateReminder,
-    deleteReminder,
-    deleteRemindersByDate,
-    setSelectedDate,
-    navigateMonth
-  };
+    deleteReminder(id: string) {
+      this.reminders = this.reminders.filter((reminder) => reminder.id !== id);
+    },
+
+    deleteRemindersByDate(date: Date) {
+      this.reminders = this.reminders.filter(
+        (reminder) =>
+          !(
+            reminder.date.getDate() === date.getDate() &&
+            reminder.date.getMonth() === date.getMonth() &&
+            reminder.date.getFullYear() === date.getFullYear()
+          )
+      );
+    },
+
+    setSelectedDate(date: Date | null) {
+      this.selectedDate = date;
+    },
+
+    navigateMonth(direction: 'prev' | 'next') {
+      const newDate = new Date(this.currentDate);
+      if (direction === 'prev') {
+        newDate.setMonth(newDate.getMonth() - 1);
+      } else {
+        newDate.setMonth(newDate.getMonth() + 1);
+      }
+      this.currentDate = newDate;
+    },
+
+    initializeStore() {
+      this.loadInitialState();
+
+      this.$subscribe((_mutation, state) => {
+        setTimeout(() => {
+          const dataToSave: IStoredCalendarData = {
+            currentDate: state.currentDate.toISOString(),
+            reminders: state.reminders.map((reminder) => ({
+              ...reminder,
+              date: reminder.date.toISOString()
+            })),
+            selectedDate: state.selectedDate?.toISOString() || null
+          };
+
+          storageService.saveCalendarData(dataToSave);
+        }, 100);
+      });
+    }
+  }
 });
