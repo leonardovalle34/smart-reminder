@@ -2,7 +2,6 @@ import { defineStore } from 'pinia';
 import type { ICalendar } from '../interface/ICalendar';
 import { storageService, type IStoredCalendarData } from '../services/calendarService';
 import { generateReminderId } from '../utils/config';
-import DangerToast from '../components/Toasts/DangerToast.vue';
 
 export const useCalendarStore = defineStore('calendar', {
   state: () => ({
