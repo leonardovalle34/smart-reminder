@@ -106,7 +106,6 @@
         const daysDiff = Math.floor(
           (currentDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
         );
-
         if (daysDiff >= 0 && daysDiff < weatherState.value.length) {
           const forecast = weatherState.value[daysDiff];
           if (forecast) {
@@ -116,7 +115,6 @@
           }
         }
       }
-
       days.push({
         date: new Date(currentDate),
         isCurrentMonth: currentDate.getMonth() === month,
@@ -149,7 +147,6 @@
   const fetchComponent = async () => {
     await store.initializeStore();
     await weatherStore.getWeatherForecast(cityInput.value);
-    console.log('weatherState.value', weatherState.value);
   };
 
   onMounted(() => {
@@ -238,7 +235,6 @@
               {{ day }}
             </div>
           </div>
-
           <div class="grid grid-cols-7 gap-1 h-[calc(100%-3rem)]">
             <CalendarDay
               v-for="day in calendarDays"

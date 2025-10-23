@@ -9,7 +9,6 @@ export interface IWeatherData {
 }
 export const getWeatherForecast = async (city: string): Promise<IWeatherData[]> => {
   try {
-    console.log('dsagdsagdsa', city);
     const data = await fetch(
       `${openWeatherApiPath}/data/2.5/forecast?q=${city}&lang=pt-br&units=metric&APPID=${import.meta.env.VITE_OPENWEATHER_API_KEY}`
     ).then((res) => res.json());
