@@ -5,13 +5,14 @@
 </script>
 
 <script setup lang="ts">
-  interface Props {
+  interface IProps {
     day: {
       date: Date;
       isCurrentMonth: boolean;
       reminderCount: number;
-      temperature: number;
-      weatherIcon: string;
+      temperature: number | null;
+      weatherIcon: string | null;
+      weatherDesc?: string | null;
       dotColors: string[];
       hasMoreReminders: boolean;
     };
@@ -25,7 +26,7 @@
     (e: 'reminderClick', date: Date): void;
   }
 
-  defineProps<Props>();
+  defineProps<IProps>();
   defineEmits<Emits>();
 </script>
 
@@ -33,28 +34,31 @@
   <div
     @click="$emit('dayClick', day.date)"
     :class="[
-      'flex flex-col items-center justify-start p-1 cursor-pointer rounded-lg border-2 transition-all group relative',
+      'flex flex-col items-center justify-start p-1 cursor-pointer rounded-lg border-2 transition-all group relative min-h-[50px]',
       {
         'border-transparent text-gray-400 bg-gray-50': !day.isCurrentMonth,
-        'border-gray-200 text-gray-700 bg-white hover:border-gray-300 hover:bg-gray-50':
+        'border-gray-200 text-gray-700 bg-white hover:border-gray-400 hover:bg-gray-50':
           day.isCurrentMonth && !isToday,
         'border-blue-500 bg-blue-50 text-blue-700 font-semibold': isToday && day.isCurrentMonth,
         'border-gray-400 bg-gray-100': isSelected && !isToday
       }
     ]"
   >
-    <!-- Day Number -->
     <div class="text-xs font-semibold mb-0.5">{{ day.date.getDate() }}</div>
-
-    <!-- Weather Info -->
-    <div v-if="day.isCurrentMonth" class="flex items-center justify-center space-x-0.5 mb-0.5">
-      <span class="text-[10px]">{{ day.weatherIcon }}</span>
-      <span class="text-[10px] font-medium">{{ day.temperature }}°</span>
+    <div
+      v-if="day.isCurrentMonth && day.temperature !== null && day.weatherIcon !== null"
+      class="flex items-center justify-center space-x-0.5 mb-0.5"
+    >
+      <img
+        v-if="day.weatherIcon"
+        :src="`https://openweathermap.org/img/wn/${day.weatherIcon}.png`"
+        :alt="'Weather icon'"
+        class="w-6 h-6"
+      />
+      <span class="text-[14px] font-medium">{{ day.temperature }}°</span>
     </div>
-
-    <!-- Single Dot -->
-    <div v-if="day.reminderCount > 0" class="flex justify-center space-x-0.5">
-      <!-- Dots das cores reais -->
+    <div v-else-if="day.isCurrentMonth" class="h-4 mb-0.5"></div>
+    <div v-if="day.reminderCount > 0" class="flex justify-center space-x-0.5 mt-auto">
       <div
         v-for="(color, index) in day.dotColors"
         :key="index"
@@ -62,8 +66,6 @@
         class="w-2 h-2 rounded-full cursor-pointer hover:scale-125 transition-transform"
         :style="{ backgroundColor: color }"
       />
-
-      <!-- Indicador "+" quando tem mais de 3 lembretes -->
       <div
         v-if="day.hasMoreReminders"
         @click.stop="$emit('reminderClick', day.date)"
@@ -72,12 +74,25 @@
         +
       </div>
     </div>
-    <!-- Tooltip -->
     <div
-      class="absolute bottom-full mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10"
+      style="z-index: 1000"
+      class="absolute bottom-full text-center mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10 p-2"
     >
-      <div>{{ day.weatherIcon }} {{ day.temperature }}°C - {{ cityName }}</div>
-      <div>{{ day.reminderCount }} appointment{{ day.reminderCount !== 1 ? 's' : '' }}</div>
+      <div v-if="day.temperature !== null && day.weatherIcon !== null">
+        {{ day.temperature }}°C -
+        {{ cityName.substring(0, 1).toUpperCase() + cityName.substring(1) }}
+        <div>
+          <img
+            :src="`https://openweathermap.org/img/wn/${day.weatherIcon}.png`"
+            :alt="'Weather icon'"
+            class="inline w-16 h-16"
+          />
+          <p>{{ day.weatherDesc }}</p>
+        </div>
+      </div>
+      <div class="m-2">
+        {{ day.reminderCount }} appointment{{ day.reminderCount !== 1 ? 's' : '' }}
+      </div>
     </div>
   </div>
 </template>

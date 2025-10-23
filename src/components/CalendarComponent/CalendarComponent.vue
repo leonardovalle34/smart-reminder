@@ -10,18 +10,22 @@
   import type { ICalendar } from '../../interface/ICalendar';
   import { monthNames } from '../../utils/data';
   import ReminderListModal from '../Modals/ReminderListModal.vue';
+  import { useWeatherStore } from '../../stores/weatherStore';
+  import { storeToRefs } from 'pinia';
 
   const store = useCalendarStore();
+  const weatherStore = useWeatherStore();
   const showReminderModal = ref(false);
   const showReminderListModal = ref(false);
   const editingReminder = ref<ICalendar | null>(null);
-  const cityInput = ref('New York');
-
+  const cityInput = ref('');
+  const { weatherState } = storeToRefs(weatherStore);
   const weekDays = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
-  const handleInputCityChange = (city: string) => {
+  const handleInputCityChange = async (city: string) => {
     cityInput.value = city;
     localStorage.setItem('selectedCity', city);
+    await weatherStore.getWeatherForecast(city);
   };
 
   const handleDayClick = (date: Date) => {
@@ -45,7 +49,6 @@
     showReminderListModal.value = true;
     showReminderModal.value = false;
   };
-  //edit modal functions
 
   const handleDeleteReminder = (reminderId: string) => {
     store.deleteReminder(reminderId);
@@ -73,7 +76,6 @@
     editingReminder.value = null;
   };
 
-  // 👇 **CALENDAR DAYS COM DADOS REAIS*
   const calendarDays = computed(() => {
     const year = store.currentYear;
     const month = store.currentMonth;
@@ -91,48 +93,44 @@
     const currentDate = new Date(startDate);
 
     while (currentDate <= endDate) {
-      // 👇 **Buscar lembretes da store**
       const dateReminders = store.getRemindersForDate(new Date(currentDate));
       const reminderCount = dateReminders.length;
-
-      // 👇 **COR REAL - do primeiro lembrete ou default**
       const dotColors = dateReminders.map((reminder) => reminder.color).slice(0, 3);
 
-      // 👇 **DADOS DE CLIMA - reais ou mock como fallback**
-      let temperature = 20;
-      let weatherIcon = '☀️';
+      let temperature = null;
+      let weatherIcon = null;
+      let weatherDesc = null;
 
-      // Tentar usar dados reais de clima dos lembretes
-      const reminderWithWeather = dateReminders.find((r) => r.weather);
-      if (reminderWithWeather?.weather) {
-        temperature = reminderWithWeather.weather.temperature;
-        weatherIcon = reminderWithWeather.weather.icon ?? '☀️';
-      } else {
-        // Fallback para dados mockados
-        const baseTemp = cityInput.value.toLowerCase().includes('new york')
-          ? 15
-          : cityInput.value.toLowerCase().includes('los angeles')
-            ? 22
-            : cityInput.value.toLowerCase().includes('miami')
-              ? 28
-              : cityInput.value.toLowerCase().includes('london')
-                ? 12
-                : cityInput.value.toLowerCase().includes('tokyo')
-                  ? 18
-                  : 20;
+      if (weatherState.value && weatherState.value.length) {
+        const today = new Date();
+        const daysDiff = Math.floor(
+          (currentDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
 
-        temperature = baseTemp + (currentDate.getDate() % 8);
-        weatherIcon = ['☀️', '🌧️', '⛅', '🌤️'][currentDate.getDate() % 4] || '☀️';
+        if (daysDiff >= 0 && daysDiff < weatherState.value.length) {
+          const forecast = weatherState.value[daysDiff];
+          if (forecast) {
+            temperature = Math.round(forecast.temp);
+            weatherIcon = forecast.icon;
+            weatherDesc = forecast.desc;
+          }
+        }
       }
 
       days.push({
         date: new Date(currentDate),
         isCurrentMonth: currentDate.getMonth() === month,
-        reminderCount: reminderCount, // 👈 **NÚMERO REAL de lembretes**
+        reminderCount: reminderCount,
         temperature: temperature,
         weatherIcon: weatherIcon,
-        dotColors: dotColors, // 👈 **COR REAL dos lembretes**
-        hasMoreReminders: reminderCount > 3
+        weatherDesc: weatherDesc,
+        dotColors: dotColors,
+        hasMoreReminders: reminderCount > 3,
+        hasRealWeather:
+          weatherState.value &&
+          weatherState.value.length > 0 &&
+          Math.floor((currentDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <
+            weatherState.value.length
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -148,23 +146,26 @@
     );
   };
 
+  const fetchComponent = async () => {
+    await store.initializeStore();
+    await weatherStore.getWeatherForecast(cityInput.value);
+    console.log('weatherState.value', weatherState.value);
+  };
+
   onMounted(() => {
     const cityFromDb = localStorage.getItem('selectedCity');
-    cityFromDb ? (cityInput.value = cityFromDb) : (cityInput.value = 'indianapolis');
+    cityFromDb ? (cityInput.value = cityFromDb) : (cityInput.value = 'New York');
+    fetchComponent();
   });
 </script>
 
 <template>
-  <div class="h-screen bg-gray-100 overflow-hidden flex flex-col">
-    <!-- Top Menu Navigation -->
+  <div class="h-screen bg-gray-200 overflow-hidden flex flex-col">
     <HeaderComponent />
-    <!-- Main Content -->
-    <main class="flex-1 overflow-auto flex items-center justify-center p-4">
-      <!-- Calendar Container -->
+    <main class="flex-1 overflow-auto flex items-center justify-center p-0">
       <div
-        class="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-md h-[580px] flex flex-col"
+        class="bg-white rounded-xl shadow-lg border border-gray-200 w-full max-w-md h-[600px] flex flex-col"
       >
-        <!-- Calendar Header com Input de Cidade -->
         <div
           class="px-4 py-3 border-b border-gray-200 bg-white rounded-t-xl flex-shrink-0 relative"
         >
@@ -213,13 +214,11 @@
             </div>
           </div>
 
-          <!-- Input de Cidade com Autocomplete -->
           <div class="flex items-center space-x-2 relative">
             <WeatherInput v-model="cityInput" @update:model-value="handleInputCityChange" />
           </div>
         </div>
 
-        <!-- Stats -->
         <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
           <StatsComponent
             :total="store.reminders.length"
@@ -229,9 +228,7 @@
           />
         </div>
 
-        <!-- Calendar Grid -->
         <div class="flex-1 min-h-0 p-4">
-          <!-- Week Days Header -->
           <div class="grid grid-cols-7 gap-1 mb-2">
             <div
               v-for="day in weekDays"
@@ -242,7 +239,6 @@
             </div>
           </div>
 
-          <!-- Month Days -->
           <div class="grid grid-cols-7 gap-1 h-[calc(100%-3rem)]">
             <CalendarDay
               v-for="day in calendarDays"
@@ -260,7 +256,6 @@
           </div>
         </div>
 
-        <!-- Selected Date -->
         <div
           v-if="store.selectedDate"
           class="px-4 py-3 bg-gray-50 border-t border-gray-200 rounded-b-xl flex-shrink-0"
