@@ -15,6 +15,7 @@
       weatherDesc?: string | null;
       dotColors: string[];
       hasMoreReminders: boolean;
+      dateReminder: any;
     };
     isToday: boolean;
     isSelected: boolean;
@@ -74,6 +75,7 @@
         +
       </div>
     </div>
+
     <div
       style="z-index: 1000"
       class="absolute bottom-full text-center mb-2 hidden group-hover:block bg-gray-900 text-white text-xs rounded py-1 px-2 whitespace-nowrap z-10 p-2"
@@ -92,6 +94,15 @@
       </div>
       <div class="m-2">
         {{ day.reminderCount }} appointment{{ day.reminderCount !== 1 ? 's' : '' }}
+        <div v-if="day.reminderCount > 0" class="mt-2 flex flex-col items-center">
+          <span
+            v-for="(reminder, index) in day.dateReminder"
+            :key="index"
+            class="block text-center"
+          >
+            • {{ reminder.text }}
+          </span>
+        </div>
       </div>
     </div>
   </div>

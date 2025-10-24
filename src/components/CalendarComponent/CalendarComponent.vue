@@ -106,8 +106,8 @@
         const daysDiff = Math.floor(
           (currentDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
         );
-        if (daysDiff >= 0 && daysDiff < weatherState.value.length) {
-          const forecast = weatherState.value[daysDiff];
+        if (daysDiff >= -1 && daysDiff < weatherState.value.length) {
+          const forecast = weatherState.value[daysDiff + 1];
           if (forecast) {
             temperature = Math.round(forecast.temp);
             weatherIcon = forecast.icon;
@@ -124,11 +124,7 @@
         weatherDesc: weatherDesc,
         dotColors: dotColors,
         hasMoreReminders: reminderCount > 3,
-        hasRealWeather:
-          weatherState.value &&
-          weatherState.value.length > 0 &&
-          Math.floor((currentDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) <
-            weatherState.value.length
+        dateReminder: dateReminders
       });
       currentDate.setDate(currentDate.getDate() + 1);
     }
@@ -219,9 +215,9 @@
         <div class="px-4 py-2 bg-gray-50 border-b border-gray-200 flex-shrink-0">
           <StatsComponent
             :total="store.reminders.length"
-            :days="new Set(store.reminders.map((r) => r.date.toDateString())).size"
-            :next="store.reminders.filter((r) => r.date > new Date()).length"
-            :past="store.reminders.filter((r) => r.date < new Date()).length"
+            :days="new Set(store.reminders.map((r: ICalendar) => r.date.toDateString())).size"
+            :next="store.reminders.filter((r: ICalendar) => r.date > new Date()).length"
+            :past="store.reminders.filter((r: ICalendar) => r.date < new Date()).length"
           />
         </div>
 
@@ -298,6 +294,5 @@
       />
     </main>
     <FooterComponent />
-    <!-- Footer -->
   </div>
 </template>
