@@ -1,11 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { mount } from '@vue/test-utils';
 import ReminderModal from '../components/Modals/ReminderModal.vue';
+import { errorToast } from '../components/Toasts/Toasts';
 
 describe('ReminderModal.vue', () => {
   let wrapper: any;
 
   beforeEach(() => {
+    vi.mock('../components/Toasts/Toasts', () => ({
+      errorToast: vi.fn()
+    }));
     wrapper = mount(ReminderModal, {
       props: {
         show: true,
@@ -21,23 +25,17 @@ describe('ReminderModal.vue', () => {
   });
 
   it('should have validation error empty text', async () => {
-    //const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-    //const buttons = wrapper.findAll('button');
-    /*const saveButton = buttons.find(
-      (button) => button.text().includes('Save') || button.text().includes('Reminder')
-    );*/
-    //await saveButton.trigger('click');
-    //expect(alertMock).toHaveBeenCalledWith('Please enter reminder text');
-    //alertMock.mockRestore();
+    const buttons = wrapper.findAll('button');
+    const saveButton = buttons.find(
+      (button: any) => button.text().includes('Save') || button.text().includes('Reminder')
+    );
+    await saveButton.trigger('click');
+    expect(errorToast).toHaveBeenCalledWith('Please enter reminder text');
   });
 
   it('should test validation error for 30chars', async () => {
-    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
-
-    const longText = 'This is a very long reminder text that exceeds thirty characters limit!!!';
-
-    await wrapper.find('textarea').setValue(longText);
-    await wrapper.find('input[type="text"]').setValue('New York');
+    await wrapper.find('textarea').setValue('longText'.repeat(31));
+    await wrapper.find('input[type="text"]').setValue('a'.repeat(31));
 
     const buttons = wrapper.findAll('button');
     const saveButton = buttons.find(
@@ -45,33 +43,53 @@ describe('ReminderModal.vue', () => {
     );
 
     await saveButton.trigger('click');
-    expect(alertMock).toHaveBeenCalledWith('Reminder text cannot exceed 30 characters');
-    alertMock.mockRestore();
+    expect(errorToast).toHaveBeenCalledWith('Reminder text cannot exceed 30 characters');
   });
 
   it('should successfully add a new reminder', async () => {
-    await wrapper.find('textarea').setValue('Meeting with team');
-    await wrapper.find('input[type="text"]').setValue('New York');
+    const wrapper = mount(ReminderModal, {
+      props: {
+        show: true,
+        selectedDate: new Date('2023-10-10')
+      }
+    });
 
-    const colorOptions = wrapper.findAll('.grid.grid-cols-3 > div');
-    await colorOptions[0].trigger('click');
+    await wrapper.vm.$nextTick();
 
-    const buttons = wrapper.findAll('button');
-    const saveButton = buttons.find(
-      (button: any) => button.text().includes('Save') || button.text().includes('Reminder')
-    );
+    const textarea = wrapper.find('textarea');
+    await textarea.setValue('Test reminder');
 
+    const cityInput = wrapper.find('input[type="text"]');
+    await cityInput.setValue('Test City');
+
+    const dateInput = wrapper.find('input[type="date"]');
+    await dateInput.setValue('2023-10-10');
+
+    const timeInput = wrapper.find('input[type="time"]');
+    await timeInput.setValue('09:00');
+
+    const colorOptions = wrapper.findAll('[class*="cursor-pointer"]');
+    if (colorOptions.length > 0) {
+      await colorOptions[0]?.trigger('click');
+    }
+
+    await wrapper.vm.$nextTick();
+
+    const saveButton = wrapper.find('button[class*="bg-blue-600"]');
     await saveButton.trigger('click');
 
-    //expect(wrapper.emitted('save')).toBeTruthy();
+    await wrapper.vm.$nextTick();
+    await new Promise((resolve) => setTimeout(resolve, 0));
 
-    const savePayload = wrapper.emitted('save')[0][0];
-    expect(savePayload).toMatchObject({
-      text: 'Meeting with team',
-      city: 'New York',
-      color: expect.any(String)
-    });
-    expect(savePayload.date).toBeInstanceOf(Date);
+    expect(wrapper.emitted('save')).toBeTruthy();
+
+    const emittedSave = wrapper.emitted('save');
+    if (emittedSave && emittedSave[0]) {
+      const savePayload = emittedSave[0][0] as { text: string; city: string; date: Date };
+      expect(savePayload.text).toBe('Test reminder');
+      expect(savePayload.city).toBe('Test City');
+      expect(savePayload.date).toBeInstanceOf(Date);
+    }
   });
 
   it('should update an existing reminder', async () => {

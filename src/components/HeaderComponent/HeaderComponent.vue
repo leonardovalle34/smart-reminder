@@ -7,7 +7,6 @@
   <header class="bg-white border-b border-gray-200 flex-shrink-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex justify-between items-center h-16">
-        <!-- Logo -->
         <div class="flex items-center">
           <div class="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center mr-3">
             <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -22,7 +21,6 @@
           <span class="text-xl font-bold text-gray-900">Smart Reminder</span>
         </div>
 
-        <!-- User Menu -->
         <div class="flex items-center space-x-4">
           <button class="text-gray-600 hover:text-gray-900 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

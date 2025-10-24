@@ -1,3 +1,4 @@
+import { errorToast } from '../components/Toasts/Toasts';
 export interface IStoredCalendarData {
   currentDate: string;
   reminders: StoredReminder[];
@@ -12,36 +13,63 @@ export interface StoredReminder {
   color: string;
 }
 
-export const storageService = {
+export interface ICalendarData {
+  currentDate: Date;
+  reminders: {
+    id: string;
+    text: string;
+    date: Date;
+    city: string;
+    color: string;
+  }[];
+  selectedDate: Date | null;
+}
+
+export const calendarService = {
   STORAGE_KEY: 'smart-calendar-data',
 
-  saveCalendarData(data: IStoredCalendarData): void {
+  async saveCalendarData(data: ICalendarData): Promise<void> {
     try {
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+      const storedData: IStoredCalendarData = {
+        currentDate: data.currentDate.toISOString(),
+        selectedDate: data.selectedDate ? data.selectedDate.toISOString() : null,
+        reminders: data.reminders.map((reminder) => ({
+          id: reminder.id,
+          text: reminder.text,
+          date: reminder.date.toISOString(),
+          city: reminder.city,
+          color: reminder.color
+        }))
+      };
+
+      await localStorage.setItem(this.STORAGE_KEY, JSON.stringify(storedData));
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      throw new Error('Unable to save calendar data to local storage');
     }
   },
 
-  loadCalendarData(): IStoredCalendarData | null {
+  async loadCalendarData(): Promise<ICalendarData | null> {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (stored) {
-        const data = JSON.parse(stored);
+        const data: IStoredCalendarData = JSON.parse(stored);
 
-        return data;
+        return {
+          currentDate: new Date(data.currentDate),
+          selectedDate: data.selectedDate ? new Date(data.selectedDate) : null,
+          reminders: data.reminders.map((storedReminder) => ({
+            id: storedReminder.id,
+            text: storedReminder.text,
+            date: new Date(storedReminder.date),
+            city: storedReminder.city,
+            color: storedReminder.color
+          }))
+        };
       }
     } catch (error) {
-      console.error('Error loading from localStorage:', error);
+      errorToast('Error loading calendar data:');
+      throw new Error('Unable to load calendar data from local storage');
     }
     return null;
-  },
-
-  clearCalendarData(): void {
-    localStorage.removeItem(this.STORAGE_KEY);
-  },
-
-  hasCalendarData(): boolean {
-    return localStorage.getItem(this.STORAGE_KEY) !== null;
   }
 };

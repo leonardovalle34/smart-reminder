@@ -11,21 +11,16 @@
   interface Emits {
     (e: 'update:modelValue', value: string): void;
   }
-
   const emit = defineEmits<Emits>();
-
   interface Props {
     modelValue: string;
   }
 
   const props = defineProps<Props>();
-
-  // Estado do autocomplete
   const showSuggestions = ref(false);
   const filteredCities = ref<string[]>([]);
   const inputValue = ref(props.modelValue);
 
-  // Watch para sincronizar com o v-model externo
   watch(
     () => props.modelValue,
     (newValue) => {
@@ -33,9 +28,7 @@
     }
   );
 
-  // Filtrar cidades baseado no input
   const filterCities = (input: string) => {
-    emit('update:modelValue', input);
     if (input.length < 2) {
       filteredCities.value = [];
       showSuggestions.value = false;
@@ -44,34 +37,28 @@
 
     filteredCities.value = availableCities
       .filter((city) => city.toLowerCase().includes(input.toLowerCase()))
-      .slice(0, 6); // Mostrar até 6 sugestões
+      .slice(0, 6);
 
     showSuggestions.value = filteredCities.value.length > 0;
   };
 
-  // Selecionar uma cidade das sugestões
   const selectCity = (city: string) => {
     inputValue.value = city;
     emit('update:modelValue', city);
     showSuggestions.value = false;
   };
 
-  // Fechar sugestões ao clicar fora (com delay para permitir clique)
   const closeSuggestions = () => {
     setTimeout(() => {
       showSuggestions.value = false;
     }, 200);
   };
 
-  // Focar no input quando o componente montar
   const inputRef = ref<HTMLInputElement>();
 
-  // Método para focar no input (pode ser chamado externamente se necessário)
   const focus = () => {
     inputRef.value?.focus();
   };
-
-  // Expor o método focus se necessário
   defineExpose({ focus });
 </script>
 
@@ -83,18 +70,15 @@
         ref="inputRef"
         v-model="inputValue"
         @input="filterCities(inputValue)"
+        @keydown.enter.prevent="selectCity(inputValue)"
         @blur="closeSuggestions"
         type="text"
         placeholder="Enter your city..."
         class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
       />
-
-      <!-- Indicador de loading (pode ser usado quando integrar API real) -->
       <div v-if="false" class="absolute right-3 top-1/2 transform -translate-y-1/2">
         <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
       </div>
-
-      <!-- Sugestões de Autocomplete -->
       <div
         v-if="showSuggestions && filteredCities.length > 0"
         class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto z-50 animate-fade-in"
@@ -129,8 +113,6 @@
           </div>
         </div>
       </div>
-
-      <!-- Mensagem quando não há resultados -->
       <div
         v-if="showSuggestions && filteredCities.length === 0 && inputValue.length >= 2"
         class="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-lg shadow-lg mt-1 p-3 z-50"

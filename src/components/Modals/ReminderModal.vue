@@ -8,7 +8,7 @@
   import { ref, computed, watch } from 'vue';
   import type { ICalendar } from '../../interface/ICalendar';
   import { colorOptions } from '../../utils/data';
-  import DangerToast from '../Toasts/DangerToast.vue';
+  import { errorToast } from '../Toasts/Toasts';
 
   interface IProps {
     show: boolean;
@@ -24,8 +24,6 @@
 
   const props = defineProps<IProps>();
   const emit = defineEmits<Emits>();
-  const showErrorToast = ref(false);
-  const errorMessage = ref('');
 
   const form = ref({
     text: '',
@@ -91,30 +89,21 @@
     return date.toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit' });
   };
 
-  const showToast = (msg: string) => {
-    showErrorToast.value = true;
-    errorMessage.value = msg;
-    setTimeout(() => {
-      showErrorToast.value = false;
-      errorMessage.value = '';
-    }, 3000);
-  };
-
   const validateForm = (): boolean => {
     if (!form.value.text.trim()) {
-      showToast('Please enter reminder text');
+      errorToast('Please enter reminder text');
       return false;
     }
     if (form.value.text.length > maxChars) {
-      showToast(`Reminder text cannot exceed ${maxChars} characters`);
+      errorToast(`Reminder text cannot exceed ${maxChars} characters`);
       return false;
     }
     if (!form.value.city.trim()) {
-      showToast('Please enter city name');
+      errorToast('Please enter city name');
       return false;
     }
     if (!form.value.date || !form.value.time) {
-      showToast('Please select date and time');
+      errorToast('Please select date and time');
       return false;
     }
 
@@ -161,7 +150,6 @@
       class="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
       @click="stopPropagation"
     >
-      <!-- Header -->
       <div class="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
         <h2 class="text-xl font-semibold text-gray-800">
           {{ editingReminder ? 'Edit Reminder' : 'Add Reminder' }}
@@ -265,7 +253,6 @@
       </div>
     </div>
   </div>
-  <DangerToast v-if="showErrorToast" :message="errorMessage" />
 </template>
 
 <style scoped>
